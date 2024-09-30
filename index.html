@@ -3,11 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KotlinProject</title>
-    <link type="text/css" rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-    <script type="application/javascript" src="composeApp.js"></script>
+    <title>Morse Code Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .rectangles {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+        }
+        .rectangle {
+            width: 100px;
+            height: 100px;
+            background-color: black;
+        }
+        #wpmValue {
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="rectangles">
+            <div id="leftRectangle" class="rectangle"></div>
+            <div id="rightRectangle" class="rectangle"></div>
+        </div>
+        <input type="text" id="inputText" placeholder="Enter text">
+        <div>
+            <input type="range" id="wpmSlider" min="5" max="40" value="15">
+            <div id="wpmValue">15 WPM</div>
+        </div>
+        <button id="convertButton">Convert</button>
+    </div>
+
+    <script>
+        const morseCode = {
+            'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
+            'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
+            'M': '--', 'N': '-.', 'O': '---', 'P': '.--.', 'Q': '--.-', 'R': '.-.',
+            'S': '...', 'T': '-', 'U': '..-', 'V': '...-', 'W': '.--', 'X': '-..-',
+            'Y': '-.--', 'Z': '--..', '0': '-----', '1': '.----', '2': '..---',
+            '3': '...--', '4': '....-', '5': '.....', '6': '-....', '7': '--...',
+            '8': '---..', '9': '----.', ' ': '/'
+        };
+
+        function convertToMorse(text) {
+            return text.toUpperCase().split('').map(char => morseCode[char] || char).join(' ');
+        }
+
+        function generateSignalSequence(morseText) {
+            return morseText.split('').flatMap(char => {
+                switch (char) {
+                    case '.': return ['DOT', 'NONE'];
+                    case '-': return ['DASH', 'NONE'];
+                    case ' ': return ['SPACE'];
+                    case '/': return ['WORD_SPACE'];
+                    default: return [];
+                }
+            });
+        }
+
+        async function animateSequence(sequence, wpm) {
+            const dotDuration = 1200 / wpm / 2;
+            const leftRectangle = document.getElementById('leftRectangle');
+            const rightRectangle = document.getElementById('rightRectangle');
+
+            for (const signal of sequence) {
+                switch (signal) {
+                    case 'DOT':
+                        leftRectangle.style.backgroundColor = 'white';
+                        await new Promise(r => setTimeout(r, dotDuration * 3));
+                        leftRectangle.style.backgroundColor = 'black';
+                        break;
+                    case 'DASH':
+                        rightRectangle.style.backgroundColor = 'white';
+                        await new Promise(r => setTimeout(r, dotDuration * 7));
+                        rightRectangle.style.backgroundColor = 'black';
+                        break;
+                    case 'SPACE':
+                        await new Promise(r => setTimeout(r, dotDuration * 7));
+                        break;
+                    case 'WORD_SPACE':
+                        await new Promise(r => setTimeout(r, dotDuration * 7));
+                        break;
+                    case 'NONE':
+                        await new Promise(r => setTimeout(r, dotDuration));
+                        break;
+                }
+            }
+        }
+
+        document.getElementById('convertButton').addEventListener('click', () => {
+            const input = document.getElementById('inputText').value;
+            const wpm = parseInt(document.getElementById('wpmSlider').value);
+            const morseText = convertToMorse(input);
+            const sequence = generateSignalSequence(morseText);
+            animateSequence(sequence, wpm);
+        });
+
+        document.getElementById('wpmSlider').addEventListener('input', (e) => {
+            document.getElementById('wpmValue').textContent = `${e.target.value} WPM`;
+        });
+
+        // テキスト入力の保存と復元
+        document.getElementById('inputText').value = localStorage.getItem('morseInput') || '';
+        document.getElementById('inputText').addEventListener('input', (e) => {
+            localStorage.setItem('morseInput', e.target.value);
+        });
+    </script>
 </body>
 </html>
